@@ -24,11 +24,15 @@ namespace ArchiSteamFarm.CustomPlugins.SteamSceScraper;
 internal sealed class SteamSceScraperPlugin : IASF, IBot, IBotCommand2 {
 	private const string RootCommand = "SSE";
 	private const string StatusSubcommand = "STATUS";
+	private const string DatabaseSubcommand = "DB";
 
 	private const EAccess MinimumAccess = EAccess.FamilySharing;
 
 	// References vers les bots attaches au plugin (nettoyees dans OnBotDestroy)
 	private static readonly ConcurrentDictionary<string, Bot> Bots = new(StringComparer.OrdinalIgnoreCase);
+
+	// Base SQLite es_cache.sqlite (phase P1) — reutilise la base du projet Node
+	private static EsCacheDatabase? database;
 
 	[JsonInclude]
 	public string Name => nameof(SteamSceScraperPlugin);
@@ -37,13 +41,17 @@ internal sealed class SteamSceScraperPlugin : IASF, IBot, IBotCommand2 {
 	public Version Version => typeof(SteamSceScraperPlugin).Assembly.GetName().Version ?? throw new InvalidOperationException(nameof(Version));
 
 	public Task OnLoaded() {
-		ASF.ArchiLogger.LogGenericInfo($"{Name} v{Version} charge (phase P0 : socle, pas encore de scraping).");
+		ASF.ArchiLogger.LogGenericInfo($"{Name} v{Version} charge (phase P1 : stockage SQLite). Le scraping arrive en P2-P3.");
 
 		return Task.CompletedTask;
 	}
 
 	public Task OnASFInit(IReadOnlyDictionary<string, JsonElement>? additionalConfigProperties = null) {
 		SteamSceScraperConfig.Init(additionalConfigProperties);
+
+		if (SteamSceScraperConfig.Enabled) {
+			InitializeDatabase();
+		}
 
 		return Task.CompletedTask;
 	}
@@ -76,18 +84,67 @@ internal sealed class SteamSceScraperPlugin : IASF, IBot, IBotCommand2 {
 		}
 
 		if (args.Length < 2) {
-			return Task.FromResult<string?>($"{RootCommand} {StatusSubcommand} : affiche l'etat du plugin.");
+			return Task.FromResult<string?>($"{RootCommand} {StatusSubcommand} : affiche l'etat du plugin.\n{RootCommand} {DatabaseSubcommand} : resume de la base SQLite.");
 		}
 
-		return string.Equals(args[1], StatusSubcommand, StringComparison.OrdinalIgnoreCase)
-			? Task.FromResult<string?>(GetStatus())
-			: Task.FromResult<string?>(null);
+		switch (args[1].ToUpperInvariant()) {
+			case StatusSubcommand:
+				return Task.FromResult<string?>(GetStatus());
+			case DatabaseSubcommand:
+				return Task.FromResult<string?>(GetDatabaseStatus());
+			default:
+				return Task.FromResult<string?>(null);
+		}
 	}
 
 	private string GetStatus() =>
-		$"{Name} v{Version} — phase P0 (socle)\n" +
+		$"{Name} v{Version} — phase P1 (stockage)\n" +
 		$"Active : {(SteamSceScraperConfig.Enabled ? "oui" : "non")} | Bots attaches : {Bots.Count}\n" +
-		$"Base : {SteamSceScraperConfig.DatabasePath} (des P1) | Sync : {SteamSceScraperConfig.SyncHours} h (des P4)\n" +
+		$"Base : {GetDatabaseShortStatus()} | Sync : {SteamSceScraperConfig.SyncHours} h (des P4)\n" +
 		$"Concurrence : {SteamSceScraperConfig.ConcurrencyLimit} | Delai inventaire : {SteamSceScraperConfig.InventoryPageDelay} ms | EVENT_APP_IDS : {SteamSceScraperConfig.EventAppIds.Count}\n" +
 		"Scraping badges/SCE/marche non installe : arrive en P2-P3.";
+
+	private static string GetDatabaseShortStatus() {
+		if (database == null) {
+			return "non initialisee";
+		}
+
+		try {
+			DatabaseSummary summary = database.GetSummary();
+
+			return $"OK ({summary.Games} jeux, {summary.Cards} cartes)";
+		} catch (Exception e) {
+			return $"erreur ({e.Message})";
+		}
+	}
+
+	private static string GetDatabaseStatus() {
+		if (database == null) {
+			return "Base non initialisee (plugin desactive ou erreur d'ouverture).";
+		}
+
+		try {
+			DatabaseSummary summary = database.GetSummary();
+
+			return
+				$"Base : {database.DatabasePath}\n" +
+				$"Jeux : {summary.Games} | Cartes : {summary.Cards} | Badge appids : {summary.BadgeAppIds}\n" +
+				$"Credits SCE : {summary.SceCredit ?? "n/a"} | Offers en attente : {summary.ScePendingOffers ?? "n/a"}";
+		} catch (Exception e) {
+			return $"Erreur d'acces a la base : {e.Message}";
+		}
+	}
+
+	private static void InitializeDatabase() {
+		try {
+			database = new EsCacheDatabase(SteamSceScraperConfig.DatabasePath);
+			database.Initialize();
+
+			DatabaseSummary summary = database.GetSummary();
+			ASF.ArchiLogger.LogGenericInfo($"{SteamSceScraperConfig.Prefix} : base initialisee {database.DatabasePath} — {summary.Games} jeux, {summary.Cards} cartes, {summary.BadgeAppIds} badge appids.");
+		} catch (Exception e) {
+			database = null;
+			ASF.ArchiLogger.LogGenericError($"{SteamSceScraperConfig.Prefix} : impossible d'initialiser la base {SteamSceScraperConfig.DatabasePath} : {e}");
+		}
+	}
 }

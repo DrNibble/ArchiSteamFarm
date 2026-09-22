@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
+		<!-- Copier les dependances runtime (Microsoft.Data.Sqlite + binaires natifs SQLite) vers la sortie, pour le dossier plugins/ d'ASF -->
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<Authors>DrNibble</Authors>
 		<Company>DrNibble</Company>
 		<Description>Conversion de Steam-SCE-Scraper (github.com/DrNibble/Steam-SCE-Scraper) en plugin ASF</Description>
@@ -9,6 +11,7 @@
 	<ItemGroup>
 		<PackageReference Include="JetBrains.Annotations.Sources" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" IncludeAssets="compile" />
+		<PackageReference Include="Microsoft.Data.Sqlite" />
 		<PackageReference Include="System.Composition.AttributedModel" IncludeAssets="compile" />
 	</ItemGroup>
 
@@ -18,5 +21,16 @@
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<Copy SourceFolders="$(TargetDir)" DestinationFolder="..\ArchiSteamFarm\bin\$(Configuration)\$(TargetFramework)\plugins\$(AssemblyName)\" SkipUnchangedFiles="true" />
+
+		<!-- Le chargeur de plugins d'ASF ne resout pas les assets natifs par RID :
+		     on copie la lib native SQLite de la plateforme courante a la racine du
+		     dossier plugin, puis on retire le dossier runtimes/ (les dll des autres
+		     plateformes provoqueraient des erreurs BadImageFormat au chargement). -->
+		<ItemGroup>
+			<NativeSqlite Include="$(TargetDir)runtimes\$(NETCoreSdkRuntimeIdentifier)\native\*e_sqlite3*" />
+		</ItemGroup>
+		<Error Condition="'@(NativeSqlite)' == ''" Text="Lib native SQLite introuvable pour $(NETCoreSdkRuntimeIdentifier)." />
+		<Copy SourceFiles="@(NativeSqlite)" DestinationFolder="..\ArchiSteamFarm\bin\$(Configuration)\$(TargetFramework)\plugins\$(AssemblyName)\" />
+		<RemoveDir Directories="..\ArchiSteamFarm\bin\$(Configuration)\$(TargetFramework)\plugins\$(AssemblyName)\runtimes" />
 	</Target>
 </Project>

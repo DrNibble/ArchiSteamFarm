@@ -33,10 +33,10 @@ Convertir le projet **Steam-SCE-Scraper** (Node.js + PHP, propriété de DrNibbl
   - `a4a2bf3` — docs : proposition de conversion (fichier ci-dessus).
   - `19fac6d` — feat : socle P0 du plugin SteamSceScraper.
 
-## 3. P0 livrée (état actuel du code)
+## 3. P0 et P1 livrées (état actuel du code)
 
-Projet `ArchiSteamFarm.CustomPlugins.SteamSceScraper/` (4 fichiers, dans la solution
-`ArchiSteamFarm.slnx`) :
+Projet `ArchiSteamFarm.CustomPlugins.SteamSceScraper/` (dans la solution
+`ArchiSteamFarm.slnx`) — socle P0 + stockage P1 :
 
 | Fichier | Rôle |
 |---|---|
@@ -48,26 +48,44 @@ Projet `ArchiSteamFarm.CustomPlugins.SteamSceScraper/` (4 fichiers, dans la solu
 Vérifié : `dotnet build` 0 warning/0 erreur, et ASF chargé avec le plugin
 (« SteamSceScraperPlugin has been loaded successfully! »).
 
-## 4. Prochaines étapes (P1 → P7, détails dans la proposition)
+### P1 — Stockage (ajoutée)
 
-1. **P1 — Stockage** : `Storage/EsCacheDatabase.cs` avec `Microsoft.Data.Sqlite`
-   (nouvelle dépendance : l'ajouter avec sa version dans `Directory.Packages.props`,
-   sans `IncludeAssets="compile"`). Réutiliser le **même fichier et schéma**
-   `data/es_cache.sqlite` (table `meta` avec version, `games`, `cards` ; timestamps en ms).
-   Le PHP doit continuer de fonctionner sans changement.
-2. **P2 — Scraping Steam** : `Steam/BadgeScraper.cs` via `bot.ArchiWebHandler.WebBrowser`
+- `Storage/EsCacheDatabase.cs` : ouvre/crée la **même base** que le Node
+  (`SteamSceScraperDatabasePath`, résolu par rapport au répertoire d'exécution
+  d'ASF), schema identique à `node/src/db.js` (tables `meta`, `games`, `cards`,
+  `badge_appids` + migrations `ALTER TABLE`), PRAGMAs `WAL` / `synchronous=NORMAL` /
+  `busy_timeout=5000` / `foreign_keys=ON` par connexion, pooling, lectures :
+  `GetGamesWithCards()`, `GetCardsForGame()`, `GetMeta()`, `GetSummary()`
+  (compteurs + `scecredit`/`scePendingOffers`).
+- `Storage/DatabaseSummary.cs` : résumé de l'état de la base.
+- Initialisation dans `OnASFInit` (si activé), nouvelle commande **`!sse db`**
+  (chemin absolu, compteurs, credits SCE), et `!sse status` affiche l'état base.
+- **Points packaging résolus** (utile pour toute dépendance runtime future) :
+  le SDK .NET 10 ne copie plus les assemblies NuGet dans la sortie d'une
+  bibliothèque — il faut `CopyLocalLockFileAssemblies=true` dans le csproj ;
+  et le chargeur de plugins d'ASF ne résout pas les libs natives par RID — le
+  PostBuild copie `runtimes/<RID courant>/native/*e_sqlite3*` à la racine du
+  dossier plugin et supprime le dossier `runtimes/` (sinon erreurs
+  `BadImageFormatException` au démarrage d'ASF).
+- `Microsoft.Data.Sqlite` 10.0.12 ajouté dans `Directory.Packages.props`.
+- Vérifié : création de base neuve par le plugin (tables + migrations + WAL),
+  et lecture d'une base peuplée par un processus externe (3 jeux / 3 cartes).
+
+## 4. Prochaines étapes (P2 → P7, détails dans la proposition)
+
+1. **P2 — Scraping Steam** : `Steam/BadgeScraper.cs` via `bot.ArchiWebHandler.WebBrowser`
    (`UrlGetToHtmlDocument`, `UrlGetToJsonObject`) — remplace `steam.js` + `auth.js`.
-3. **P3 — SCE + marché** : `Sce/SceScraper.cs` (cookie `PHPSESSID` en config) +
+2. **P3 — SCE + marché** : `Sce/SceScraper.cs` (cookie `PHPSESSID` en config) +
    `Market/MarketQueue.cs` (`System.Threading.Channels` + SemaphoreSlim) ;
    parsing HTML avec HtmlAgilityPack (autre nouvelle dépendance).
-4. **P4 — Analyse + commandes** : `Analysis/BadgeAnalyzer.cs` + `SyncOrchestrator.cs`
+3. **P4 — Analyse + commandes** : `Analysis/BadgeAnalyzer.cs` + `SyncOrchestrator.cs`
    (timer à la PeriodicGC), commandes `!sse sync`, `!sse report`.
-5. **P5 — API IPC** : `IPC/SteamSceController.cs : ArchiController`
+4. **P5 — API IPC** : `IPC/SteamSceController.cs : ArchiController`
    (`[Route("/Api/SteamSce")]`), JSON + Swagger (modèle SteamTokenDumper).
-6. **P6 — Trade offers** : `ArchiWebHandler` n'expose PAS d'envoi (seulement
+5. **P6 — Trade offers** : `ArchiWebHandler` n'expose PAS d'envoi (seulement
    Accept/Decline/Cancel/GetTradeOffers — vérifié) ; écrire l'appel direct
    `POST /trade/new` via le WebBrowser du bot (spike préalable recommandé).
-7. **P7 — Rangement** : désactiver le repo Node.
+6. **P7 — Rangement** : désactiver le repo Node.
 
 ## 5. Conventions et commandes utiles
 

@@ -233,10 +233,12 @@ Et par bot (`config/Bot.json`) :
 
 ## 7. Plan de migration par phases
 
-> **Statut : phase P0 implémentée** sur cette branche — projet
-> `ArchiSteamFarm.CustomPlugins.SteamSceScraper` (config ASF `SteamSceScraper*`,
-> commande `!sse status`, 4 fichiers sources, build et chargement vérifiés dans ASF).
-> Les phases suivantes sont à venir.
+> **Statut : phases P0 et P1 implémentées** sur cette branche — projet
+> `ArchiSteamFarm.CustomPlugins.SteamSceScraper` : P0 = socle (config ASF
+> `SteamSceScraper*`, commande `!sse status`) ; P1 = stockage
+> (`Storage/EsCacheDatabase.cs` sur `Microsoft.Data.Sqlite`, meme base et meme
+> schéma que le Node, WAL, commandes `!sse db`). Build et chargement vérifiés
+> dans ASF. Les phases suivantes sont à venir.
 
 | Phase | Contenu | Critère de sortie |
 |---|---|---|
