@@ -1,7 +1,7 @@
 # Contexte de reprise — projet Steam-SCE → plugin ASF
 
-> Document écrit le 22/09/2026 pour permettre de reprendre le travail depuis
-> n'importe quel compte/outil. Tout ce qui suit est auto-suffisant.
+> Document écrit le 22/09/2026 (mis à jour après P1) pour permettre de reprendre le
+> travail depuis n'importe quel compte/outil. Tout ce qui suit est auto-suffisant.
 
 ## 1. Objectif global
 
@@ -32,6 +32,8 @@ Convertir le projet **Steam-SCE-Scraper** (Node.js + PHP, propriété de DrNibbl
 - Branche de travail : **`proposal/steam-sce-custom-plugin`** (ne pas toucher `main`).
   - `a4a2bf3` — docs : proposition de conversion (fichier ci-dessus).
   - `19fac6d` — feat : socle P0 du plugin SteamSceScraper.
+  - `543cceb` — docs : contexte de reprise du projet (inter-comptes).
+  - `51bb019` — feat : phase P1 (stockage SQLite es_cache, `!sse db`).
 
 ## 3. P0 et P1 livrées (état actuel du code)
 
