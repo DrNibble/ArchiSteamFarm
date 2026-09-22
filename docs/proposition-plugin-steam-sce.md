@@ -233,6 +233,11 @@ Et par bot (`config/Bot.json`) :
 
 ## 7. Plan de migration par phases
 
+> **Statut : phase P0 implémentée** sur cette branche — projet
+> `ArchiSteamFarm.CustomPlugins.SteamSceScraper` (config ASF `SteamSceScraper*`,
+> commande `!sse status`, 4 fichiers sources, build et chargement vérifiés dans ASF).
+> Les phases suivantes sont à venir.
+
 | Phase | Contenu | Critère de sortie |
 |---|---|---|
 | **P0 — Socle** (1-2 j) | csproj + `SteamSceScraperPlugin` (IPlugin/IASF/IBot), config, logs ASF, `!sse status` | plugin chargé par ASF, visible dans `/Api/Plugins` |

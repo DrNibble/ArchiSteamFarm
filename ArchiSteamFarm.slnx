@@ -10,6 +10,7 @@
 	<Project Path="ArchiSteamFarm.CustomPlugins.ExamplePlugin/ArchiSteamFarm.CustomPlugins.ExamplePlugin.csproj" />
 	<Project Path="ArchiSteamFarm.CustomPlugins.PeriodicGC/ArchiSteamFarm.CustomPlugins.PeriodicGC.csproj" />
 	<Project Path="ArchiSteamFarm.CustomPlugins.SignInWithSteam/ArchiSteamFarm.CustomPlugins.SignInWithSteam.csproj" />
+	<Project Path="ArchiSteamFarm.CustomPlugins.SteamSceScraper/ArchiSteamFarm.CustomPlugins.SteamSceScraper.csproj" />
 
 	<Project Path="ArchiSteamFarm.OfficialPlugins.ItemsMatcher/ArchiSteamFarm.OfficialPlugins.ItemsMatcher.csproj" />
 	<Project Path="ArchiSteamFarm.OfficialPlugins.MobileAuthenticator/ArchiSteamFarm.OfficialPlugins.MobileAuthenticator.csproj" />
