@@ -109,12 +109,13 @@ internal static class Logging {
 
 						break;
 					case ASF.EUserInputType.DeviceConfirmation:
-						string deviceConfirmationText = Bot.FormatBotResponse(Strings.UserInputDeviceConfirmation, botName);
+					case ASF.EUserInputType.QrCodeLogin:
+						string confirmationText = Bot.FormatBotResponse(userInputType == ASF.EUserInputType.QrCodeLogin ? Strings.UserInputQrCodeLogin : Strings.UserInputDeviceConfirmation, botName);
 
 						while (true) {
-							ASF.ArchiLogger.LogGenericWarning(deviceConfirmationText);
+							ASF.ArchiLogger.LogGenericWarning(confirmationText);
 
-							Console.Write(deviceConfirmationText);
+							Console.Write(confirmationText);
 							result = ConsoleReadLine();
 
 							ASF.ArchiLogger.LogGenericInfo(Strings.FormatInput(result));
@@ -267,10 +268,7 @@ internal static class Logging {
 		}
 
 		// This is a temporary, bare, file-less configuration that must work until we're able to initialize it properly
-		LogManager.Setup().SetupSerialization(static serialization => {
-				serialization.ParseMessageTemplates(false);
-			}
-		);
+		LogManager.Setup().SetupSerialization(static serialization => { serialization.ParseMessageTemplates(false); });
 
 		LoggingConfiguration config = new();
 
@@ -319,6 +317,22 @@ internal static class Logging {
 	internal static void StartInteractiveConsole() {
 		Utilities.InBackground(HandleConsoleInteractively, true);
 		ASF.ArchiLogger.LogGenericInfo(Strings.InteractiveConsoleEnabled);
+	}
+
+	internal static async Task WriteToConsole(string message) {
+		ArgumentException.ThrowIfNullOrEmpty(message);
+
+		if (Program.Service || (ASF.GlobalConfig?.Headless ?? GlobalConfig.DefaultHeadless)) {
+			return;
+		}
+
+		await ConsoleSemaphore.WaitAsync().ConfigureAwait(false);
+
+		try {
+			Console.WriteLine(message);
+		} finally {
+			ConsoleSemaphore.Release();
+		}
 	}
 
 	private static async Task BeepUntilCanceled(CancellationToken cancellationToken, byte secondsDelay = 30) {

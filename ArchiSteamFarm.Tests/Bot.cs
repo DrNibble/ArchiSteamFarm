@@ -65,11 +65,7 @@ internal sealed class Bot {
 
 		ASF.GlobalDatabase ??= emptyObject.ToJsonObject<GlobalDatabase>();
 
-		if (constructor.Invoke([botName, botConfig, botDatabase]) is not Steam.Bot result) {
-			throw new InvalidOperationException(nameof(result));
-		}
-
-		return result;
+		return constructor.Invoke([botName, botConfig, botDatabase]) is Steam.Bot result ? result : throw new InvalidOperationException(nameof(result));
 	}
 
 	[TestMethod]
@@ -437,6 +433,15 @@ internal sealed class Bot {
 		};
 
 		AssertResultMatchesExpectation(expectedResult, itemsToSend);
+	}
+
+	[TestMethod]
+	internal void SetUserInputAcceptsQrCodeLoginChoice() {
+		Steam.Bot bot = GenerateBot();
+
+		Assert.IsTrue(bot.SetUserInput(ASF.EUserInputType.QrCodeLogin, "Y"));
+		Assert.IsTrue(bot.SetUserInput(ASF.EUserInputType.QrCodeLogin, "n"));
+		Assert.IsFalse(bot.SetUserInput(ASF.EUserInputType.QrCodeLogin, "maybe"));
 	}
 
 	[TestMethod]
