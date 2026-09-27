@@ -552,3 +552,4 @@ $RECYCLE.BIN/
 
 # Files that could be ignored by above rules, that we want to ship
 !ArchiSteamFarm/overlay/**
+*.patch
